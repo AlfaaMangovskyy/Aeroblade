@@ -26,6 +26,9 @@ while running:
             if e.key == pygame.K_SPACE:
                 arena.player.camera.shake(15, FRAMERATE * 2, 90)
 
+            if e.key == pygame.K_s:
+                arena.player.jump()
+
     if not running: break
 
     keymap = pygame.key.get_pressed()
