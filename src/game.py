@@ -10,6 +10,9 @@ clock = pygame.time.Clock()
 arena = Arena([
     Block(-5, 3, 10, 3)
 ])
+arena.newEntity("missile", 7, 7, {"inaccuracy" : 9})
+for x in range(-9, 9, 1):
+    arena.newEntity("bug", x, -3,)
 
 running = True
 while running:
@@ -28,6 +31,11 @@ while running:
 
             if e.key == pygame.K_s:
                 arena.player.jump()
+
+        if e.type == pygame.MOUSEBUTTONDOWN:
+
+            if e.button == 1:
+                arena.player.ability("torpedoes")
 
     if not running: break
 
@@ -64,6 +72,34 @@ while running:
                 block.h * arena.scale,
             )
         )
+
+    for entity in arena.entities:
+
+        if entity.id == "missile":
+            rx = (entity.x - camX) * arena.scale + WIDTH // 2
+            ry = (entity.y - camY) * arena.scale + HEIGHT // 2
+            pygame.draw.polygon(
+                screen, "#FF0000",
+                (
+                    (rx + 25, ry),
+                    (rx, ry + 25),
+                    (rx - 25, ry),
+                    (rx, ry - 25),
+                )
+            )
+
+        if entity.id == "bug":
+            rx = (entity.x - camX) * arena.scale + WIDTH // 2
+            ry = (entity.y - camY) * arena.scale + HEIGHT // 2
+            pygame.draw.polygon(
+                screen, "#33FF33",
+                (
+                    (rx + 25, ry),
+                    (rx, ry + 25),
+                    (rx - 25, ry),
+                    (rx, ry - 25),
+                )
+            )
 
     pygame.display.update()
     clock.tick(FRAMERATE)

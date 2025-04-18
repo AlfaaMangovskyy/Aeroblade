@@ -124,6 +124,15 @@ class Player:
             self.damage = 200
         self.damageTimer = FRAMERATE * 5
 
+
+
+    def ability(self, _id : str, **args):
+        getattr(self, f"ability_{_id}", null)(**args)
+
+    def ability_torpedoes(self, **args):
+        for i in range(6):
+            self.arena.newEntity("missile", self.x, self.y, {"angle" : 60 * i})
+
 class Camera:
     def __init__(self, player : Player):
         self.player = player
@@ -195,27 +204,56 @@ class Entity:
 
     def tick_missile(self):
         minimalDistance = 5000
-        minimalEntity = None
+        target = None
         for entity in self.arena.entities:
             if entity == self: continue
             distance = math.sqrt((self.y - entity.y) ** 2 + (self.x - entity.x) ** 2)
             if distance < minimalDistance:
-                minimalDistance = distance
-                minimalEntity = entity
+                if entity.id in ENTITY_CLASS_OPPONENT:
+                    minimalDistance = distance
+                    target = entity
 
             if distance <= 1:
-                self.destroy = True
+                if entity.id in ENTITY_CLASS_OPPONENT:
+                    entity.hitDamage(25)
+                    self.destroy = True
 
-        if not minimalEntity: return
         if not "angle" in self.args:
             self.args["angle"] = 0
+        if not target:
+            self.x += 0.25 * math.cos(self.args.get("angle") / 180 * math.pi)
+            self.y += 0.25 * math.sin(self.args.get("angle") / 180 * math.pi)
+            return
 
-        angle = math.atan2(minimalEntity.y - self.y, minimalEntity.x - self.x) * 180 / math.pi
+        angle = math.atan2(target.y - self.y, target.x - self.x) * 180 / math.pi
         delta = angle - self.args["angle"]
         self.args["angle"] += delta / self.args.get("inaccuracy", 2)
 
+        self.x += 0.25 * math.cos(self.args.get("angle") / 180 * math.pi)
+        self.y += 0.25 * math.sin(self.args.get("angle") / 180 * math.pi)
+
+    def tick_bug(self):
+        if not "damage" in self.args:
+            self.args["damage"] = 0
+
+        angle = math.atan2(self.arena.player.y - self.y, self.arena.player.x - self.x)
+        self.x += 0.15 * math.cos(angle)
+        self.y += 0.15 * math.sin(angle)
+
+        distance = math.sqrt((self.arena.player.y - self.y) ** 2 + (self.arena.player.x - self.x) ** 2)
+        if distance <= 1:
+            self.x += -0.35 * math.cos(angle)
+            self.y += -0.35 * math.sin(angle)
+            self.arena.player.hitDamage(7)
+
     def hitDamage_missile(self, amount : int):
         return 0
+
+    def hitDamage_bug(self, amount : int):
+        self.args["damage"] += amount
+        if self.args["damage"] >= 20:
+            self.destroy = True
+        return amount
 
 class Arena:
     def __init__(self, blocks : list[Block] = []):
@@ -233,3 +271,8 @@ class Arena:
             entity.tick()
             if entity.destroy:
                 self.entities.remove(entity)
+
+    def newEntity(self, _id : str, x : float, y : float, args : dict = {}):
+        entity = Entity(self, _id, x, y, args)
+        self.entities.append(entity)
+        return entity
